@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+*.egg-info/
+# Market data is never committed (provider terms of use); rebuild with `make data`.
+data/*
+!data/.gitkeep
+.hypothesis/
