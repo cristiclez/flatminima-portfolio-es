@@ -33,6 +33,8 @@ make test               # pytest
 make lint               # ruff
 ```
 
+On Windows (PowerShell): `.venv\Scripts\activate`, and run the `python -m ...` commands from the Makefile directly if `make` is unavailable.
+
 ## Data
 
 - **Real:** daily adjusted closes of 28 liquid US-listed ETFs from 2005 via Yahoo Finance
