@@ -19,23 +19,35 @@ def simulate_garch_t(
     nu: float,
     rng: np.random.Generator,
     burn: int = 500,
+    gamma: float = 0.0,
+    mu: float = 0.0,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Simulate GARCH(1,1) with unit-variance Student-t innovations.
+    """Simulate GARCH(1,1) / GJR-GARCH(1,1) with unit-variance Student-t innovations.
 
-    r_t = sigma_t z_t,  sigma_t^2 = omega + alpha r_{t-1}^2 + beta sigma_{t-1}^2.
-    Returns (returns, conditional_sigma), both of length ``n``.
+    r_t = mu + sigma_t z_t,
+    sigma_t^2 = omega + (alpha + gamma 1[e_{t-1}<0]) e_{t-1}^2 + beta sigma_{t-1}^2,
+    with e_t = r_t - mu. ``gamma=0`` gives plain GARCH. Returns (returns, conditional_sigma),
+    both of length ``n``.
     """
-    if not (alpha >= 0 and beta >= 0 and alpha + beta < 1 and nu > 2 and omega > 0):
-        raise ValueError("need omega>0, alpha,beta>=0, alpha+beta<1, nu>2")
+    if not (
+        alpha >= 0
+        and beta >= 0
+        and gamma >= 0
+        and alpha + beta + gamma / 2 < 1
+        and nu > 2
+        and omega > 0
+    ):
+        raise ValueError("need omega>0, alpha,beta,gamma>=0, alpha+beta+gamma/2<1, nu>2")
     total = n + burn
     z = rng.standard_t(nu, size=total) * np.sqrt((nu - 2.0) / nu)
     r = np.empty(total)
     s2 = np.empty(total)
-    s2[0] = omega / (1.0 - alpha - beta)
-    r[0] = np.sqrt(s2[0]) * z[0]
+    s2[0] = omega / (1.0 - alpha - beta - gamma / 2.0)
+    r[0] = mu + np.sqrt(s2[0]) * z[0]
     for t in range(1, total):
-        s2[t] = omega + alpha * r[t - 1] ** 2 + beta * s2[t - 1]
-        r[t] = np.sqrt(s2[t]) * z[t]
+        e_prev = r[t - 1] - mu
+        s2[t] = omega + (alpha + gamma * (e_prev < 0)) * e_prev**2 + beta * s2[t - 1]
+        r[t] = mu + np.sqrt(s2[t]) * z[t]
     return r[burn:], np.sqrt(s2[burn:])
 
 

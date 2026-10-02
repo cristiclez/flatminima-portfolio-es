@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import duckdb
+import numpy as np
 import pandas as pd
 
 
@@ -44,3 +45,8 @@ def wide_returns(
     if end:
         wide = wide.loc[:end]
     return wide.dropna(how="any")
+
+
+def equal_weight_return(wide: pd.DataFrame) -> pd.Series:
+    """Daily-rebalanced equal-weight portfolio log return: log(mean_i exp(r_i))."""
+    return pd.Series(np.log(np.exp(wide).mean(axis=1)), name="EW")

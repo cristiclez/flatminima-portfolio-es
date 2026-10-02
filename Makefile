@@ -1,4 +1,4 @@
-.PHONY: install data data-synthetic test lint cov
+.PHONY: install data data-synthetic risk test lint cov
 PY ?= python
 
 install:
@@ -9,6 +9,9 @@ data:            ## Real data (Yahoo Finance); needs internet and the `data` ext
 
 data-synthetic:  ## Fully offline synthetic panel (for demos and CI)
 	$(PY) -m flatminima.data.pipeline --source synthetic
+
+risk:            ## Rolling VaR/ES forecasts on the stored data (run `make data` first)
+	$(PY) -m flatminima.risk.run
 
 lint:
 	ruff check src tests
