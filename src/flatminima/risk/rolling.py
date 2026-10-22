@@ -28,15 +28,18 @@ def rolling_risk(
 ) -> pd.DataFrame:
     """Rolling one-step-ahead VaR (``var_level`` and ``es_level``) and ES (``es_level``).
 
-    Output columns: ret, sigma, var_99, var_975, es_975 (names reflect the default levels),
-    and the unfiltered baselines hs_var_99, hs_es_975. Losses are positive numbers.
-    ``DataFrame.attrs`` records the number of refits and failed refits.
+    Output columns: ret, mu, sigma, var_99, var_975, es_975 (names reflect the default
+    levels), the unfiltered baselines hs_var_99 and hs_es_975, and ``zq_00 ...``: the lowest
+    standardised residuals of the estimation window, which define the lower tail of the
+    predictive distribution (needed by the Acerbi-Szekely Monte Carlo). Losses are positive
+    numbers. ``DataFrame.attrs`` records the number of refits and failed refits.
     """
     r = returns.to_numpy(dtype=float)
     n = len(r)
     if n <= window:
         raise ValueError("series shorter than the estimation window")
 
+    m_tail = int(np.ceil((1.0 - es_level) * (window - 1))) + 1
     params: GarchParams | None = None
     n_refits = n_failed = 0
     rows = []
@@ -56,12 +59,23 @@ def rolling_risk(
         v_es, es = fhs_var_es(z, params.mu, sig, es_level)
         hv, _ = historical_var_es(w, var_level)
         _, hes = historical_var_es(w, es_level)
-        rows.append((r[t], sig, v_hi, v_es, es, hv, hes))
+        tail = np.sort(z)[:m_tail]
+        rows.append((r[t], params.mu, sig, v_hi, v_es, es, hv, hes, *tail))
 
     out = pd.DataFrame(
         rows,
         index=returns.index[window:],
-        columns=["ret", "sigma", "var_99", "var_975", "es_975", "hs_var_99", "hs_es_975"],
+        columns=[
+            "ret",
+            "mu",
+            "sigma",
+            "var_99",
+            "var_975",
+            "es_975",
+            "hs_var_99",
+            "hs_es_975",
+            *[f"zq_{k:02d}" for k in range(m_tail)],
+        ],
     )
     out.attrs.update(n_refits=n_refits, n_failed_refits=n_failed, model=model, window=window)
     return out

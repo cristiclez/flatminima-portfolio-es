@@ -3,9 +3,10 @@
     python -m flatminima.risk.run                 # SPY and the equal-weight portfolio
     python -m flatminima.risk.run --series SPY --series TLT --window 1000
 
-Output table ``risk_forecasts``: series, date, ret, sigma, var_99, var_975, es_975,
-hs_var_99, hs_es_975 (positive losses, unit notional). Exception counts printed here are
-purely descriptive; formal backtests (Kupiec, Christoffersen, Acerbi-Szekely) come next.
+Output table ``risk_forecasts``: series, date, ret, mu, sigma, var_99, var_975, es_975,
+hs_var_99, hs_es_975 and the residual-tail columns zq_* (positive losses, unit notional).
+Exception counts printed here are purely descriptive; the formal backtests (Kupiec,
+Christoffersen, Acerbi-Szekely) live in ``flatminima.backtest``.
 """
 
 from __future__ import annotations
@@ -26,6 +27,7 @@ def run(
     window: int = 1000,
     refit_every: int = 20,
     model: str = "gjr",
+    table: str = "risk_forecasts",
 ) -> pd.DataFrame:
     """Compute rolling forecasts for each series and store them in ``risk_forecasts``."""
     con = db.connect(db_path)
@@ -49,7 +51,7 @@ def run(
     allf["model"] = model
     allf["window"] = window
     con.register("_rf", allf)
-    con.execute("CREATE OR REPLACE TABLE risk_forecasts AS SELECT * FROM _rf")
+    con.execute(f'CREATE OR REPLACE TABLE "{table}" AS SELECT * FROM _rf')
     con.unregister("_rf")
     con.close()
     return allf
@@ -62,8 +64,9 @@ def main() -> None:
     p.add_argument("--window", type=int, default=1000)
     p.add_argument("--refit-every", type=int, default=20)
     p.add_argument("--model", choices=["garch", "gjr"], default="gjr")
+    p.add_argument("--table", default="risk_forecasts", help="output table name")
     a = p.parse_args()
-    run(a.db, a.series or ("SPY", "EW"), a.window, a.refit_every, a.model)
+    run(a.db, a.series or ("SPY", "EW"), a.window, a.refit_every, a.model, a.table)
 
 
 if __name__ == "__main__":

@@ -28,6 +28,14 @@ def test_output_structure_and_ordering(forecasts):
     assert forecasts.attrs["n_refits"] == 32 and forecasts.attrs["n_failed_refits"] == 0
 
 
+def test_tail_columns_are_sorted_and_sized(forecasts):
+    tail_cols = [c for c in forecasts.columns if c.startswith("zq_")]
+    assert len(tail_cols) == int(np.ceil(0.025 * 599)) + 1
+    tails = forecasts[tail_cols].to_numpy()
+    assert (np.diff(tails, axis=1) >= 0).all()
+    assert (tails[:, -1] > tails[:, 0]).all()
+
+
 def test_exception_rates_are_plausible_on_correctly_specified_data(forecasts):
     """Smoke check only; formal Kupiec/Christoffersen tests are a separate module."""
     loss = -forecasts["ret"]
