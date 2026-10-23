@@ -159,3 +159,41 @@ def test_runner_end_to_end(tmp_path):
     out = run(path, lookback=252, n_boot=100, report=tmp_path / "r.md")
     assert len(out) == 5
     assert "Portfolio baselines" in (tmp_path / "r.md").read_text(encoding="utf-8")
+
+
+# ----------------------------------------------------------------- cap and risk-free
+@settings(max_examples=15, deadline=None)
+@given(seed=st.integers(0, 1000), n=st.integers(5, 14))
+def test_capped_optimisers_respect_cap_and_budget(seed, n):
+    x = np.random.default_rng(seed).standard_normal((250, n)) * np.linspace(0.004, 0.03, n)
+    cap = 2.0 / n
+    for w in (min_variance(sample_cov(x), cap=cap), min_cvar(x, 0.975, cap=cap)):
+        assert w.sum() == pytest.approx(1.0, abs=1e-9)
+        assert (w >= 0).all() and (w <= cap + 1e-7).all()
+
+
+def test_cap_binds_and_infeasible_cap_rejected():
+    c = np.diag([0.0001, 0.04, 0.04, 0.04])
+    assert min_variance(c)[0] > 0.9
+    assert min_variance(c, cap=0.4)[0] == pytest.approx(0.4, abs=1e-6)
+    with pytest.raises(ValueError):
+        min_variance(c, cap=0.2)
+    with pytest.raises(ValueError):
+        min_cvar(np.random.default_rng(0).standard_normal((100, 4)), cap=0.2)
+
+
+def test_summarize_with_risk_free_uses_excess_returns():
+    r = _rets()
+    res = walk_forward(r, lookback=250)
+    rf = pd.Series(0.03 / 252, index=res.returns_net.index)
+    plain = summarize(res, n_boot=200).set_index("strategy")
+    excess = summarize(res, n_boot=200, rf=rf).set_index("strategy")
+    assert excess.attrs["excess"] and not plain.attrs["excess"]
+    expected = float(sharpe((res.returns_net["EqualWeight"] - rf).to_numpy()))
+    assert excess.loc["EqualWeight", "sharpe_net"] == pytest.approx(expected)
+    assert (excess["sharpe_net"] < plain["sharpe_net"]).all()
+    assert excess.loc["EqualWeight", "ann_return"] == pytest.approx(
+        plain.loc["EqualWeight", "ann_return"]
+    )
+    with pytest.raises(ValueError):
+        summarize(res, n_boot=50, rf=rf.iloc[:10])

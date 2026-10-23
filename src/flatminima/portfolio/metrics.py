@@ -16,6 +16,13 @@ def sharpe(r: np.ndarray, axis: int = 0) -> np.ndarray | float:
     return r.mean(axis=axis) / r.std(axis=axis, ddof=1) * np.sqrt(ANN)
 
 
+def empirical_cvar(r: np.ndarray, level: float = 0.975) -> float:
+    """Mean loss over the worst ``1 - level`` share of days (losses are positive numbers)."""
+    losses = -np.asarray(r, dtype=float)
+    q = np.quantile(losses, level)
+    return float(losses[losses >= q].mean())
+
+
 def max_drawdown(r: np.ndarray) -> float:
     """Maximum peak-to-trough loss of cumulative wealth (negative number)."""
     wealth = np.cumprod(1.0 + np.asarray(r, dtype=float))
@@ -88,10 +95,28 @@ def mbb_sharpe_ci(
     return out
 
 
-def summarize(res: WalkForwardResult, benchmark: str = "EqualWeight", **mbb) -> pd.DataFrame:
-    """One row per strategy: return, vol, Sharpe (net, gross, MBB CI), drawdown, turnover."""
+def summarize(
+    res: WalkForwardResult,
+    benchmark: str = "EqualWeight",
+    rf: pd.Series | None = None,
+    **mbb,
+) -> pd.DataFrame:
+    """One row per strategy: return, vol, Sharpe (net, gross, MBB CI), drawdown, turnover.
+
+    If ``rf`` (daily simple risk-free return, indexed by date) is given, every Sharpe ratio and
+    its interval are computed on EXCESS returns (strategy minus rf); returns, volatility and
+    drawdown still refer to total net returns.
+    """
     net, gross = res.returns_net, res.returns_gross
-    ci = mbb_sharpe_ci(net, benchmark=benchmark, **mbb)
+    shift = 0.0
+    if rf is not None:
+        r = rf.reindex(net.index)
+        if r.isna().any():
+            raise ValueError("risk-free series does not cover the evaluation period")
+        shift = r.to_numpy()[:, None]
+    net_x = net - shift
+    gross_x = gross - shift
+    ci = mbb_sharpe_ci(net_x, benchmark=benchmark, **mbb)
     rows = []
     per_year = ANN / res.rebalance_every
     for k in net.columns:
@@ -100,14 +125,16 @@ def summarize(res: WalkForwardResult, benchmark: str = "EqualWeight", **mbb) -> 
             {
                 "strategy": k,
                 "ann_return": net[k].mean() * ANN,
+                "ann_excess_return": net_x[k].mean() * ANN,
                 "ann_vol": net[k].std(ddof=1) * np.sqrt(ANN),
                 "sharpe_net": ci.loc[k, "sharpe"],
                 "sharpe_ci_low": ci.loc[k, "ci_low"],
                 "sharpe_ci_high": ci.loc[k, "ci_high"],
-                "sharpe_gross": float(sharpe(gross[k].to_numpy())),
+                "sharpe_gross": float(sharpe(gross_x[k].to_numpy())),
                 "diff_vs_ew": ci.loc[k, "diff_vs_bench"],
                 "diff_ci_low": ci.loc[k, "diff_ci_low"],
                 "diff_ci_high": ci.loc[k, "diff_ci_high"],
+                "oos_cvar_975": empirical_cvar(net_x[k].to_numpy()),
                 "max_drawdown": max_drawdown(net[k].to_numpy()),
                 "ann_turnover": res.turnover[k].iloc[1:].mean() * per_year,
                 "weight_std": float(w.std(axis=1).mean()),
@@ -115,5 +142,5 @@ def summarize(res: WalkForwardResult, benchmark: str = "EqualWeight", **mbb) -> 
             }
         )
     out = pd.DataFrame(rows)
-    out.attrs.update(ci.attrs)
+    out.attrs.update(ci.attrs, excess=rf is not None)
     return out
