@@ -125,7 +125,7 @@ def run(
     """Run the experiment; returns the main table and robustness tables (also written to DuckDB)."""
     con = db.connect(db_path)
     wide = returns.wide_returns(con)
-    source = con.execute("SELECT DISTINCT source FROM raw_prices").fetchone()[0]
+    source = con.execute("SELECT DISTINCT source FROM raw_prices").fetchall()[0][0]
     if rf_constant_pct is not None:
         rate = pd.Series(rf_constant_pct, index=wide.index, name="rate_pct")
         rf_label = f"constant {rf_constant_pct:.2f}% (SMOKE TEST ONLY)"

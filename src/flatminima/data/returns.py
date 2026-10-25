@@ -21,7 +21,7 @@ def build_returns(con: duckdb.DuckDBPyConnection) -> int:
         ) WHERE log_ret IS NOT NULL
         """
     )
-    return con.execute("SELECT count(*) FROM returns").fetchone()[0]
+    return con.execute("SELECT count(*) FROM returns").fetchall()[0][0]
 
 
 def wide_returns(

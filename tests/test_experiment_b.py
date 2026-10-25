@@ -47,8 +47,8 @@ def test_runner_end_to_end_on_synthetic_data(tmp_path):
     text = (tmp_path / "specB.md").read_text(encoding="utf-8")
     assert "post hoc" in text and "SMOKE TEST ONLY" in text
     con = db.connect(path)
-    assert con.execute("SELECT COUNT(*) FROM specb_returns").fetchone()[0] > 0
-    assert con.execute("SELECT COUNT(*) FROM specb_hessian").fetchone()[0] > 0
+    assert con.execute("SELECT COUNT(*) FROM specb_returns").fetchall()[0][0] > 0
+    assert con.execute("SELECT COUNT(*) FROM specb_hessian").fetchall()[0][0] > 0
     con.close()
 
 

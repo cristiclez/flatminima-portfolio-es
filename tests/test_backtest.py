@@ -191,9 +191,9 @@ def test_backtest_runner_end_to_end(tmp_path):
     assert res["p_value"].between(0, 1).all()
     assert "Backtest results" in report.read_text(encoding="utf-8")
     con = db.connect(path)
-    assert con.execute("SELECT count(*) FROM backtest_results_risk_forecasts").fetchone()[0] == len(
-        res
-    )
+    assert con.execute("SELECT count(*) FROM backtest_results_risk_forecasts").fetchall()[0][
+        0
+    ] == len(res)
     assert len(tl) == 2
 
 

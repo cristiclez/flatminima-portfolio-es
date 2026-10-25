@@ -107,10 +107,11 @@ def sharpness(loss_fn: Callable[[], torch.Tensor], params: list[torch.Tensor], r
     loss0 = loss_fn()
     grads = torch.autograd.grad(loss0, params)
     norm = torch.sqrt(sum((g**2).sum() for g in grads)) + 1e-12
+    saved = [p.detach().clone() for p in params]
     with torch.no_grad():
         for p, g in zip(params, grads, strict=True):
             p.add_(rho * g / norm)
         loss1 = float(loss_fn())
-        for p, g in zip(params, grads, strict=True):
-            p.sub_(rho * g / norm)
+        for p, s in zip(params, saved, strict=True):
+            p.copy_(s)  # exact restoration (adding then subtracting is not exact in floating point)
     return loss1 - float(loss0.detach())

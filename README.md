@@ -34,6 +34,8 @@ make backtest           # formal backtests -> docs/backtest_results.md
 make robustness         # 500-day window variant (out-of-sample covers 2008)
 make portfolio          # walk-forward baselines -> docs/portfolio_baselines.md
 make riskfree       # 3-month T-bill (FRED DTB3) into the database (after `make data`)
+make figures        # PNGs from the stored tables -> docs/figures/ (needs matplotlib)
+make evidence       # docs/CV_EVIDENCE.md: numbers recomputed from the database + commit hash
 make experiments    # spec B: Adam vs SAM + Hessian analysis -> docs/portfolio_specB.md (needs torch)
 make test               # pytest
 make lint               # ruff
@@ -133,5 +135,12 @@ bootstrap under autocorrelation, and coverage was 92.5% for a nominal 95% on i.i
 
 **Specification B is post hoc.** Specification A (above) degenerated: the minimum-variance portfolio held about 97% in a short Treasury ETF, and Sharpe ratios had no risk-free rate. Specification B (excess returns over the 3-month T-bill, 10% cap per asset, 756-day estimation window) was defined after seeing that, so it is a post hoc design and the report says so; A is left unchanged. The daily risk-free rate is DTB3/100/252, an approximation. Hyperparameters (learning rate, gradient budget, network size, cap) were fixed on synthetic data only; SAM's rho is limited to {0.05, 0.2}.
 
-**Result on real data: not generated yet.** Run `make data`, `make riskfree`, then `make experiments` (about 10 minutes; needs `pip install torch`, CPU build is enough). The report `docs/portfolio_specB.md` is written from the measured numbers. SAM may well show no out-of-sample benefit; if so, that is the result. No claim about SAM is made in this repository until that report exists.
+**Result on real data** (`docs/portfolio_specB.md`, 2008-07 to 2026-10, 4,595 out-of-sample days, three seeds for the policy networks): SAM showed **no out-of-sample benefit** over Adam. All four paired Sharpe differences are -0.02 with 95% intervals that include zero (widest: -0.07 to +0.03). SAM did not find clearly flatter minima either: for the direct allocator its largest Hessian eigenvalue was 1.3-1.4x that of Adam; for the policy network 0.90-0.93x, without an uncertainty interval. The capped optimised portfolios have much lower volatility and drawdown than equal weight (about 6% vs 15% volatility; -19% vs -38% maximum drawdown) but no Sharpe improvement over it is demonstrated. The learned allocators do not beat the convex minimum-variance baseline. One market, one path, specification chosen post hoc.
+
+![Growth of excess return](docs/figures/fig3_cumulative_specB.png)
+![Drawdown](docs/figures/specB_drawdown.png)
+![SAM minus Adam, paired Sharpe](docs/figures/specB_paired_sharpe.png)
+![Hessian largest eigenvalue](docs/figures/fig4_curvature_specB.png)
+
+Reproduce: `make data`, `make riskfree`, `make experiments` (about 25 minutes), `make figures`. Every number that may be quoted on a CV is recomputed from the database, with its command, limits and git commit, in `docs/CV_EVIDENCE.md` (`make evidence`).
 analysis (week 5). No claim about them is made here.

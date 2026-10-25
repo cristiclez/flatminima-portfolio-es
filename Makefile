@@ -1,8 +1,8 @@
-.PHONY: install data data-synthetic risk backtest robustness portfolio riskfree experiments test lint cov
+.PHONY: install data data-synthetic risk backtest robustness portfolio riskfree experiments figures evidence test lint cov
 PY ?= python
 
 install:
-	$(PY) -m pip install -e ".[dev,data,torch]"
+	$(PY) -m pip install -e ".[dev,data,torch,plots]"
 
 data:            ## Real data (Yahoo Finance); needs internet and the `data` extra
 	$(PY) -m flatminima.data.pipeline --source yahoo
@@ -28,6 +28,12 @@ riskfree:       ## 3-month T-bill (FRED DTB3) into the database; run after `make
 
 experiments:    ## Spec B: Adam vs SAM allocators + Hessian analysis -> docs/portfolio_specB.md (needs torch)
 	$(PY) -m flatminima.portfolio.experiment_b
+
+figures:        ## PNG figures -> docs/figures (needs matplotlib)
+	$(PY) -m flatminima.report.figures
+
+evidence:       ## docs/CV_EVIDENCE.md, numbers recomputed from the database, with commit hash
+	$(PY) -m flatminima.report.evidence
 
 lint:
 	ruff check src tests

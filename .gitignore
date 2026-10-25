@@ -8,4 +8,6 @@ __pycache__/
 # Market data is never committed (provider terms of use); rebuild with `make data`.
 data/*
 !data/.gitkeep
-.hypothesis/
+
+# Figure of raw daily market losses is kept local (data terms); strategy-level figures are committed
+docs/figures/fig1_var_es.png

@@ -28,7 +28,7 @@ def test_load_is_idempotent():
     df = _prices(["A", "B"])
     ingest.load_prices(con, df, "test")
     ingest.load_prices(con, df, "test")
-    assert con.execute("SELECT count(*) FROM raw_prices").fetchone()[0] == len(df)
+    assert con.execute("SELECT count(*) FROM raw_prices").fetchall()[0][0] == len(df)
 
 
 def test_log_returns_match_numpy():
@@ -48,7 +48,7 @@ def test_log_returns_telescope(seed, n):
     df = _prices(["A"], n=n, seed=seed)
     ingest.load_prices(con, df, "test")
     returns.build_returns(con)
-    total = con.execute("SELECT sum(log_ret) FROM returns").fetchone()[0]
+    total = con.execute("SELECT sum(log_ret) FROM returns").fetchall()[0][0]
     p = df["adj_close"].to_numpy()
     assert total == pytest.approx(np.log(p[-1] / p[0]), abs=1e-9)
 

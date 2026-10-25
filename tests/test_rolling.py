@@ -81,7 +81,7 @@ def test_run_end_to_end_on_synthetic_database(tmp_path):
     build_data("synthetic", path, n_synth=900)
     out = run(path, series=("SPY", "EW"), window=500, refit_every=100)
     con = db.connect(path)
-    n = con.execute("SELECT count(*) FROM risk_forecasts").fetchone()[0]
+    n = con.execute("SELECT count(*) FROM risk_forecasts").fetchall()[0][0]
     assert n == len(out) == 2 * (900 - 500)
     assert "SPY" in UNIVERSE
     assert set(out["series"]) == {"SPY", "EW"}

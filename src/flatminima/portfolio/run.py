@@ -31,7 +31,7 @@ def run(
     """Run all baselines and write the summary table (and optionally a report)."""
     con = db.connect(db_path)
     wide = returns.wide_returns(con)
-    source = con.execute("SELECT DISTINCT source FROM raw_prices").fetchone()[0]
+    source = con.execute("SELECT DISTINCT source FROM raw_prices").fetchall()[0][0]
     con.close()
     res = walk_forward(wide, lookback=lookback, rebalance_every=rebalance_every, cost_bps=cost_bps)
     s = summarize(res, n_boot=n_boot)

@@ -10,7 +10,7 @@ Data source: `yahoo` (28 ETFs). Out-of-sample: 2006-01-04 to 2026-10-12 (5225 da
 | MinVar-RMT | 2.0% | 1.5% | 1.36 (0.93, 1.79) | +0.72 (+0.26, +1.16) | -5.8% | 0.16 | 0.180 | 1.1 |
 | MinCVaR-97.5 | 2.2% | 1.5% | 1.44 (1.02, 1.86) | +0.80 (+0.34, +1.23) | -6.0% | 0.37 | 0.179 | 1.1 |
 
-
+    
 ## Reading these results
 
 - Sharpe ratios are annualised mean/std of net returns **without subtracting a risk-free rate**.
