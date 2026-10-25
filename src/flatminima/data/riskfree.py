@@ -28,7 +28,7 @@ def parse_fred_csv(text: str) -> pd.Series:
     if df.shape[1] < 2:
         raise ValueError("expected a CSV with a date column and a value column")
     values = pd.to_numeric(df.iloc[:, 1], errors="coerce")
-    values.index = pd.DatetimeIndex(pd.to_datetime(df.iloc[:, 0]), name="date")
+    values.index = pd.DatetimeIndex(pd.to_datetime(df.iloc[:, 0]), name="date").as_unit("ns")
     out = values.dropna().sort_index().rename("rate_pct")
     if out.empty:
         raise ValueError("no numeric observations found")
@@ -70,7 +70,7 @@ def store(con: duckdb.DuckDBPyConnection, rate_pct: pd.Series) -> int:
 def read(con: duckdb.DuckDBPyConnection) -> pd.Series:
     """Read table ``riskfree`` back as a Series of annualised percent rates."""
     df = con.execute("SELECT date, rate_pct FROM riskfree ORDER BY date").df()
-    idx = pd.DatetimeIndex(pd.to_datetime(df["date"]), name="date")
+    idx = pd.DatetimeIndex(pd.to_datetime(df["date"]), name="date").as_unit("ns")
     return pd.Series(df["rate_pct"].to_numpy(), index=idx, name="rate_pct")
 
 
