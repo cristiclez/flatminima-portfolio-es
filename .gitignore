@@ -11,3 +11,8 @@ data/*
 
 # Figure of raw daily market losses is kept local (data terms); strategy-level figures are committed
 docs/figures/fig1_var_es.png
+
+
+# Virtual environments and test caches (any name starting with .venv)
+.venv*/
+.hypothesis/
